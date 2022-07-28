@@ -9,9 +9,6 @@ const GET_MOVIE = gql`
             title
             medium_cover_image
             rating
-            '''
-            뒤에 @client 를 붙여주면 localonlyfield 가 되는데 만약 cache에 이 data가 없어도 api에서 찾지 않는다.
-            '''
             isLiked @client
         }
     }
@@ -54,17 +51,36 @@ const Image = styled.div`
 
 export default function Movie() {
     const { id } = useParams()
-    const { data, loading } = useQuery(GET_MOVIE, {
+    const {
+        data,
+        loading,
+        client: { cache },
+    } = useQuery(GET_MOVIE, {
         variables: {
             movieId: id,
         },
     })
+
+    const onClick = () => {
+        cache.writeFragment({
+            id: `Movie:${id}`,
+            fragment: gql`
+                fragment movieFragment on Movie {
+                    isLiked
+                }
+            `,
+            data: {
+                isLiked: !data.movie.isLiked,
+            },
+        })
+    }
+
     return (
         <Container>
             <Column>
                 <Title>{loading ? "Loading..." : `${data.movie?.title}`}</Title>
                 <Subtitle>⭐️ {data?.movie?.rating}</Subtitle>
-                <button>{data?.movie?.isLiked ? "Ulike" : "Like"}</button>
+                <button onClick={onClick}>{data?.movie?.isLiked ? "Unlike" : "Like"}</button>
             </Column>
             <Image bg={data?.movie?.medium_cover_image} />
         </Container>
